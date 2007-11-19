@@ -1,0 +1,59 @@
+wxMathPlot is a framework for mathematical graph plotting in wxWindows.
+
+For more information go to
+https://sourceforge.net/projects/wxmathplot/
+http://wxmathplot.sourceforge.net/
+
+0.03 Release notes
+------------------
+
+Some useful functionalities has been added.
+The axes now can be set to be drawn on 5 different configurations for each one. In addition to the central mode prevoiusly avalilable, you can draw them to the the borders of the window, or close to the border but with an offset to let labels within. The axes are now always visible when you resize the window. This style is more similar to technical softwares, and more useful, I think.
+Mouse operations are now available for zooming, panning and scrolling the window. You can also activate double buffering of the mpWindow to avoid flickering.
+Three new classes are available, mpText, mpProfile and mpFXYVector. See Changelog for more details.
+
+A special acknowledgement goes to the contributors Jose Luis Blanco and Val Greene who provided a significant part of the new functionalities. 
+
+0.02 Release notes
+------------------
+
+While the project has been idle for about 4 years, this release simply fixes
+some thing to adapt to new versions of wxWidgets. The use of deprecated
+classes or method has been corrected. Only a simple method for layer
+counting has been added.
+
+wxMathPlot now works on Linux (tested for Mepis 6.5 and Debian Etch using
+wxGTK-2.6), and Windows (built under XP using Visual Studio Express 2005).
+If you experience to test it under other platforms, please write me at:
+cdron77(at)sourceforge.net
+
+
+
+Installing
+----------
+
+wxMathPlot comes with a Makefile to build a static library.
+It requires wxWindows 2.x to be installed.
+
+To build and install wxMathPlot simply type 
+
+make
+make install
+
+This will install headers to
+/usr/local/include
+
+and the static lib to
+/usr/local/lib
+
+Samples
+-------
+
+A subdirectory 'samples' contains sample applications using wxMathLib.
+To build these, type:
+
+cd samples
+make
+
+
+David Schalig, email sf(at)schalig.org
