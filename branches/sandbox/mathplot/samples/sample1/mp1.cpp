@@ -148,7 +148,7 @@ BEGIN_EVENT_TABLE(MyFrame,wxFrame)
 END_EVENT_TABLE()
 
 MyFrame::MyFrame()
-       : wxFrame( (wxFrame *)NULL, -1, wxT("wxWindows mathplot sample"))
+       : wxFrame( (wxFrame *)NULL, -1, wxT("wxWindows mathplot sample"), wxDefaultPosition, wxSize(500,500))
 {
     wxMenu *file_menu = new wxMenu();
     wxMenu *view_menu = new wxMenu();
@@ -179,8 +179,8 @@ MyFrame::MyFrame()
     m_plot = new mpWindow( this, -1, wxPoint(0,0), wxSize(100,100), wxSUNKEN_BORDER );
     m_plot->AddLayer(     new mpScaleX(wxT("x"), mpALIGN_BOTTOM, true) );
     m_plot->AddLayer(     new mpScaleY(wxT("y"), mpALIGN_LEFT, true) );
-    m_plot->AddLayer(     new MySIN( 50.0, 220.0 ) );
-    m_plot->AddLayer(     new MyCOSinverse( 50.0, 100.0 ) );
+    m_plot->AddLayer(     new MySIN( 10.0, 220.0 ) );
+    m_plot->AddLayer(     new MyCOSinverse( 10.0, 100.0 ) );
     m_plot->AddLayer( l = new MyLissajoux( 125.0 ) );
     m_plot->AddLayer(     new mpText(wxT("mpText sample"), 10, 10) );
   
@@ -204,6 +204,7 @@ MyFrame::MyFrame()
     ticks = true;
 
 	m_plot->EnableDoubleBuffer(true);
+	m_plot->Fit();
 }
 
 void MyFrame::OnQuit( wxCommandEvent &WXUNUSED(event) )

@@ -1,4 +1,18 @@
-Version 0.04 - 2007-10-??
+Version 0.04 - 2007-DEC-??
+* Behavior on window resize changed: it tries to keep constant the view area, keeping the x/y ratio if lock aspect is true.
+   Together with the new "fit" behavior, mpWindow now resembles the way MATLAB figures manage resizes.
+* Added a new "Fit" method for custom bounding boxes (exploited internally to mouse rectangular zoom).
+* Scroll-bars removed. They are quite inconsistent with the possibility of arbitrary mouse-driven pan. Should they be enabled again under some circumstances??
+* The commands "Zoom In/Out" with the mouse (from the menu and the wheel) now preserve the position on the screen of the clicked point (more intuitive).
+* The methods "ZoomIn/ZoomOut" now accept a "center point".
+* Added the methods p2x,p2y,x2p and y2p to convert between layer & pixel coordinates. 
+   Repeated formulas all across the sources have been replaced by calls to this inline functions.
+* wxDC coordinate origin fixed to the top-left corner in all cases (the default in wxWidgets), avoiding all the calls to "SetDeviceOrigin".
+* BIG FIXED: Rectangular zoom (method ZoomRect) only changed the scale, not the mpWindow starting point. 
+   It now supports both aspect locked and not aspect locked rectangular zooms.
+* Added static member "zoomIncrementalFactor" to allow users to modify the ratio of each zoom in/out step.
+* When "LockAspect" is enabled, the scale of X/Y is kept to the lower of them instead of their average.
+* BUG FIXED: Fit now actually fits the whole bounding boxes for aspect locked graphs.
 * Makefile updated to automatically build samples
 * BUG FIXED: mpFXYVector didn't draw the last point in the vector.
 * Added a new method to delete all the layers of a mpWindow (mpWindow::DelAllLayers).

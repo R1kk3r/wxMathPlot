@@ -19,7 +19,9 @@
 #include "wx/print.h"
 
 #include <math.h>
-// #include <time.h>
+
+
+#define TIMER_PERIOD_MS 	25
 
 class MyFrame;
 class MyApp;
@@ -36,6 +38,8 @@ public:
     void OnQuit( wxCommandEvent &event );
     void OnFit( wxCommandEvent &event );
     void OnTimer(wxTimerEvent& event);
+    void OnPrintPreview( wxCommandEvent &event);
+    void OnPrint( wxCommandEvent &event );
 
     mpWindow        *m_plot;
     wxTextCtrl      *m_log;
@@ -78,6 +82,8 @@ IMPLEMENT_DYNAMIC_CLASS( MyFrame, wxFrame )
 BEGIN_EVENT_TABLE(MyFrame,wxFrame)
   EVT_MENU(ID_ABOUT, MyFrame::OnAbout)
   EVT_MENU(ID_QUIT,  MyFrame::OnQuit)
+  EVT_MENU(ID_PRINT_PREVIEW, MyFrame::OnPrintPreview)
+  EVT_MENU(ID_PRINT, MyFrame::OnPrint)
   EVT_MENU(mpID_FIT, MyFrame::OnFit)
   EVT_TIMER(TIMER_ID, MyFrame::OnTimer)
  END_EVENT_TABLE()
@@ -89,6 +95,8 @@ MyFrame::MyFrame()
     wxMenu *file_menu = new wxMenu();
     wxMenu *view_menu = new wxMenu();
 
+    file_menu->Append( ID_PRINT_PREVIEW, wxT("Print Pre&view..."));
+    file_menu->Append( ID_PRINT, wxT("&Print..."));
     file_menu->Append( ID_ABOUT, wxT("&About..."));
     file_menu->Append( ID_QUIT,  wxT("E&xit\tAlt-X"));
 
@@ -151,7 +159,7 @@ MyFrame::MyFrame()
     car_xs[i]=-0.5;  car_ys[i++]= 0.5;
 
     mpPolygon *lCar;
-    m_plot->AddLayer( lCar= new mpPolygon( wxT("car") ) );
+    m_plot->AddLayer( lCar= new mpPolygon( wxT("Vehicle") ) );
     lCar->SetPen( wxPen(*wxBLACK, 3, wxSOLID) );
     lCar->setPoints( car_xs,car_ys, true );
 
@@ -186,7 +194,7 @@ MyFrame::MyFrame()
     m_plot->Fit();
 
     m_Timer = new wxTimer(this,TIMER_ID);
-    m_Timer->Start( 25 );
+    m_Timer->Start( TIMER_PERIOD_MS );
 }
 
 void MyFrame::OnQuit( wxCommandEvent &WXUNUSED(event) )
@@ -206,7 +214,7 @@ void MyFrame::OnAbout( wxCommandEvent &WXUNUSED(event) )
 
 void MyFrame::OnTimer(wxTimerEvent& event)
 {
-    mpMovableObject *obj = (mpMovableObject*)m_plot->GetLayerByName(wxT("car"));
+    mpMovableObject *obj = (mpMovableObject*)m_plot->GetLayerByName(wxT("Vehicle"));
     if (obj)
     {
         double x,y,phi, v,w, At= m_Timer->GetInterval() * 0.001;
@@ -233,6 +241,35 @@ void MyFrame::OnTimer(wxTimerEvent& event)
 
 
 }
+
+void MyFrame::OnPrintPreview( wxCommandEvent &event)
+{
+	m_Timer->Stop();
+
+      // Pass two printout objects: for preview, and possible printing.
+      mpPrintout *plotPrint = new mpPrintout(m_plot);
+      mpPrintout *plotPrintPreview = new mpPrintout(m_plot);
+      wxPrintPreview *preview = new wxPrintPreview(plotPrintPreview, plotPrint);
+      wxPreviewFrame *frame = new wxPreviewFrame(preview, this, wxT("Print Plot"), wxPoint(100, 100), wxSize(600, 650));
+      frame->Centre(wxBOTH);
+      frame->Initialize();
+      frame->Show(true);
+
+
+	m_Timer->Start( TIMER_PERIOD_MS );
+}
+
+void MyFrame::OnPrint( wxCommandEvent &event )
+{
+	m_Timer->Stop();
+
+      wxPrinter printer;
+      mpPrintout printout(m_plot, wxT("Plot print"));
+      printer.Print(this, &printout, true);
+
+	m_Timer->Start( TIMER_PERIOD_MS );
+}
+
 
 //-----------------------------------------------------------------------------
 // MyApp
