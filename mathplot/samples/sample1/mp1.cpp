@@ -9,7 +9,7 @@
 #include <wx/wx.h>
 #endif
 
-#include <mathplot.h>
+#include "../../mathplot.h"
 
 #include <wx/image.h>
 #include <wx/listctrl.h>
@@ -109,6 +109,7 @@ public:
     void OnFit( wxCommandEvent &event );
     void OnAlignXAxis( wxCommandEvent &event );
     void OnAlignYAxis( wxCommandEvent &event );
+    void OnToggleTicks( wxCommandEvent &event );
     void OnToggleGrid( wxCommandEvent &event );
     void OnToggleScrollbars(wxCommandEvent& event);
     void OnToggleInfoLayer(wxCommandEvent& event);
@@ -117,13 +118,13 @@ public:
 	void OnToggleSine(wxCommandEvent& event);
 	void OnToggleCosine(wxCommandEvent& event);
 	void OnBlackTheme(wxCommandEvent& event);
+    void OnScientificNotation(wxCommandEvent& event);
 
     mpWindow        *m_plot;
     wxTextCtrl      *m_log;
 
 private:
     int axesPos[2];
-    bool ticks;
     mpInfoCoords *nfo; // mpInfoLayer* nfo;
     DECLARE_DYNAMIC_CLASS(MyFrame)
     DECLARE_EVENT_TABLE()
@@ -150,6 +151,7 @@ enum {
     ID_PRINT_PREVIEW,
     ID_ALIGN_X_AXIS,
     ID_ALIGN_Y_AXIS,
+    ID_TOGGLE_TICKS,
     ID_TOGGLE_GRID,
     ID_TOGGLE_SCROLLBARS,
     ID_TOGGLE_INFO,
@@ -157,7 +159,8 @@ enum {
 	ID_TOGGLE_LISSAJOUX,
 	ID_TOGGLE_SINE,
 	ID_TOGGLE_COSINE,
-	ID_BLACK_THEME
+	ID_BLACK_THEME,
+    ID_SCIENTIFIC_NOTATION
 };
 
 IMPLEMENT_DYNAMIC_CLASS( MyFrame, wxFrame )
@@ -170,18 +173,20 @@ BEGIN_EVENT_TABLE(MyFrame,wxFrame)
   EVT_MENU(mpID_FIT, MyFrame::OnFit)
   EVT_MENU(ID_ALIGN_X_AXIS, MyFrame::OnAlignXAxis)
   EVT_MENU(ID_ALIGN_Y_AXIS, MyFrame::OnAlignYAxis)
+  EVT_MENU(ID_TOGGLE_TICKS, MyFrame::OnToggleTicks)
   EVT_MENU(ID_TOGGLE_GRID, MyFrame::OnToggleGrid)
   EVT_MENU(ID_TOGGLE_SCROLLBARS, MyFrame::OnToggleScrollbars)
   EVT_MENU(ID_TOGGLE_INFO, MyFrame::OnToggleInfoLayer)
   EVT_MENU(ID_SAVE_SCREENSHOT, MyFrame::OnSaveScreenshot)
   EVT_MENU(ID_BLACK_THEME, MyFrame::OnBlackTheme)
+  EVT_MENU(ID_SCIENTIFIC_NOTATION, MyFrame::OnScientificNotation)
   EVT_MENU(ID_TOGGLE_LISSAJOUX, MyFrame::OnToggleLissajoux)
   EVT_MENU(ID_TOGGLE_SINE, MyFrame::OnToggleSine)
   EVT_MENU(ID_TOGGLE_COSINE, MyFrame::OnToggleCosine)
 END_EVENT_TABLE()
 
 MyFrame::MyFrame()
-       : wxFrame( (wxFrame *)NULL, -1, wxT("wxWindows mathplot sample"), wxDefaultPosition, wxSize(500, 500))
+       : wxFrame( (wxFrame *)NULL, -1, wxT("wxWindows mathplot sample"), wxDefaultPosition, wxSize(900, 800))
 {
     wxMenu *file_menu = new wxMenu();
     wxMenu *view_menu = new wxMenu();
@@ -200,10 +205,14 @@ MyFrame::MyFrame()
     view_menu->AppendSeparator();
     view_menu->Append( ID_ALIGN_X_AXIS, wxT("Switch &X axis align"));
     view_menu->Append( ID_ALIGN_Y_AXIS, wxT("Switch &Y axis align"));
-    view_menu->Append( ID_TOGGLE_GRID, wxT("Toggle grid/ticks"));
+    view_menu->AppendCheckItem( ID_TOGGLE_TICKS, wxT("Show ticks"));    
+    view_menu->Check(ID_TOGGLE_TICKS, false);
+    view_menu->AppendCheckItem( ID_TOGGLE_GRID, wxT("Show grid"));    
+    view_menu->Check(ID_TOGGLE_GRID, true);
     view_menu->AppendCheckItem( ID_TOGGLE_SCROLLBARS, wxT("Show Scroll Bars"));
     view_menu->AppendCheckItem( ID_TOGGLE_INFO, wxT("Show overlay info box"));
 	view_menu->AppendCheckItem( ID_BLACK_THEME, wxT("Switch to black background theme"));
+    view_menu->AppendCheckItem( ID_SCIENTIFIC_NOTATION, wxT("Show Y axis label as scientific notation"));
 	
 	show_menu->AppendCheckItem( ID_TOGGLE_LISSAJOUX, wxT("Lissajoux"));
 	show_menu->AppendCheckItem( ID_TOGGLE_SINE, wxT("Sine"));
@@ -222,6 +231,8 @@ MyFrame::MyFrame()
     CreateStatusBar(1);
 
     mpLayer* l;
+    mpLayer* s;
+    mpLayer* c;
 
 	// Create a mpFXYVector layer
 	mpFXYVector* vectorLayer = new mpFXYVector(_("Vector"));
@@ -235,15 +246,14 @@ MyFrame::MyFrame()
 	}
 	vectorLayer->SetData(vectorx, vectory);
 	vectorLayer->SetContinuity(true);
-	wxPen vectorpen(*wxBLUE, 2, wxSOLID);
+	wxPen vectorpen(*wxBLUE, 2, wxPENSTYLE_SOLID);
 	vectorLayer->SetPen(vectorpen);
 	vectorLayer->SetDrawOutsideMargins(false);
 
-
 	wxFont graphFont(11, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     m_plot = new mpWindow( this, -1, wxPoint(0,0), wxSize(100,100), wxSUNKEN_BORDER );
-    mpScaleX* xaxis = new mpScaleX(wxT("X"), mpALIGN_BOTTOM, true, mpX_NORMAL);
-    mpScaleY* yaxis = new mpScaleY(wxT("Y"), mpALIGN_LEFT, true);
+    mpScaleX* xaxis = new mpScaleX(wxT("X value"), mpALIGN_BOTTOM, false, mpX_NORMAL);//mpX_HOURS
+    mpScaleY* yaxis = new mpScaleY(wxT("Y value"), mpALIGN_LEFT, false);
     xaxis->SetFont(graphFont);
     yaxis->SetFont(graphFont);
     xaxis->SetDrawOutsideMargins(false);
@@ -255,23 +265,27 @@ MyFrame::MyFrame()
 //     m_plot->SetMargins(50, 50, 200, 150);
     m_plot->AddLayer(     xaxis );
     m_plot->AddLayer(     yaxis );
-    m_plot->AddLayer(     new MySIN( 10.0, 220.0 ) );
-    m_plot->AddLayer(     new MyCOSinverse( 10.0, 100.0 ) );
+    m_plot->AddLayer( s = new MySIN( 10.0, 220.0 ) );
+    m_plot->AddLayer( c = new MyCOSinverse( 10.0, 100.0 ) );
     m_plot->AddLayer( l = new MyLissajoux( 125.0 ) );
 	m_plot->AddLayer(     vectorLayer );
     m_plot->AddLayer(     new mpText(wxT("mpText sample"), 10, 10) );
-    wxBrush hatch(wxColour(200,200,200), wxSOLID);
+    wxBrush hatch(wxColour(150,150,150), wxBRUSHSTYLE_SOLID);
     //m_plot->AddLayer( nfo = new mpInfoLayer(wxRect(80,20,40,40), &hatch));
-    m_plot->AddLayer( nfo = new mpInfoCoords(wxRect(80,20,10,10), wxTRANSPARENT_BRUSH)); //&hatch));
-    nfo->SetVisible(false);
-    wxBrush hatch2(wxColour(163,208,212), wxSOLID);
+    m_plot->AddLayer( nfo = new mpInfoCoords(wxRect(130,20,100,10), &hatch));    //wxRED_BRUSH));
+    nfo->SetVisible(true);
+    wxBrush hatch2(wxColour(163,208,212), wxBRUSHSTYLE_SOLID);
     mpInfoLegend* leg;
-    m_plot->AddLayer( leg = new mpInfoLegend(wxRect(200,20,40,40), wxTRANSPARENT_BRUSH)); //&hatch2));
+    m_plot->AddLayer( leg = new mpInfoLegend(wxRect(300,20,40,40), wxTRANSPARENT_BRUSH)); //&hatch2));
     leg->SetVisible(true);
     
     // m_plot->EnableCoordTooltip(true);
     // set a nice pen for the lissajoux
-    wxPen mypen(*wxRED, 5, wxSOLID);
+    wxPen mySpen(*wxGREEN, 2, wxPENSTYLE_SOLID);
+    s->SetPen( mySpen);
+    wxPen myCpen(wxColour(255,120,0), 2, wxPENSTYLE_SOLID);
+    c->SetPen( myCpen);
+    wxPen mypen(*wxRED, 5, wxPENSTYLE_SOLID);
     l->SetPen( mypen);
 
     m_log = new wxTextCtrl( this, -1, wxT("This is the log window.\n"), wxPoint(0,0), wxSize(100,100), wxTE_MULTILINE );
@@ -287,10 +301,22 @@ MyFrame::MyFrame()
     SetSizer( topsizer );
     axesPos[0] = 0;
     axesPos[1] = 0;
-    ticks = true;
-
+    
     m_plot->EnableDoubleBuffer(true);
-    m_plot->SetMPScrollbars(false);
+    //m_plot->SetMPScrollbars(false);         //./src/gtk/window.cpp(5985): assert ""sb"" failed in SetScrollbar(): this window is not scrollable
+    
+	m_plot->BindMouseButton(mpDOUBLE_CLICK, mpFIT);
+	m_plot->BindMouseButton(mpMIDDLE_DOWN, mpPAN);
+	//m_plot->BindMouseButton(mpRIGHT_DOWN, mpCONTEXT_MENU);
+    m_plot->BindMouseButton(mpRIGHT_DOWN, mpTRACK);
+	m_plot->BindMouseButton(mpLEFT_DOWN, mpZOOM_RECTANGLE);
+	
+	m_plot->BindMouseWheel(mpWHEEL, mpZOOM);
+	m_plot->BindMouseWheel(mpSHIFT_WHEEL, mpHORIZONTAL_PAN);
+	m_plot->BindMouseWheel(mpCTRL_WHEEL, mpVERTICAL_PAN);
+
+    m_plot->SetTrackBoxYvalueFormat("%s: %.3f");
+
     m_plot->Fit();
 
 	//double* bbx = new double[4];
@@ -395,11 +421,17 @@ void MyFrame::OnAlignYAxis( wxCommandEvent &WXUNUSED(event) )
     m_plot->UpdateAll();
 }
 
-void MyFrame::OnToggleGrid( wxCommandEvent &WXUNUSED(event) )
+void MyFrame::OnToggleTicks( wxCommandEvent& event) //&WXUNUSED(event) )
 {
-    ticks = !ticks;
-    ((mpScaleX*)(m_plot->GetLayer(0)))->SetTicks(ticks);
-    ((mpScaleY*)(m_plot->GetLayer(1)))->SetTicks(ticks);
+    ((mpScaleX*)(m_plot->GetLayer(0)))->SetTicks(event.IsChecked());
+    ((mpScaleY*)(m_plot->GetLayer(1)))->SetTicks(event.IsChecked());
+    m_plot->UpdateAll();
+}
+
+void MyFrame::OnToggleGrid( wxCommandEvent& event) //&WXUNUSED(event) )
+{
+    ((mpScaleX*)(m_plot->GetLayer(0)))->SetGrid(event.IsChecked());
+    ((mpScaleY*)(m_plot->GetLayer(1)))->SetGrid(event.IsChecked());
     m_plot->UpdateAll();
 }
 
@@ -424,11 +456,31 @@ void MyFrame::OnToggleInfoLayer(wxCommandEvent& event)
 
 void MyFrame::OnBlackTheme(wxCommandEvent& event)
 {
-	//wxColor black(0,0,0);
-	//wxColor white(255,255,255);
-	wxColour grey(96, 96, 96);
-	/*wxBrush* brush = new wxBrush(*wxTRANSPARENT_BRUSH)*/;
-	m_plot->SetColourTheme(*wxBLACK, *wxWHITE, grey);
+    //wxColor black(0,0,0);
+    //wxColor white(255,255,255);
+    wxColour grey(96, 96, 96);
+    if (event.IsChecked()){	
+    	/*wxBrush* brush = new wxBrush(*wxTRANSPARENT_BRUSH)*/;
+        //      SetColourTheme(background, foreground, axes, grids)	   
+        m_plot->SetColourTheme(wxColour(25,25,25), *wxWHITE, grey, wxColour(45,45,45));
+    }
+    else
+    {
+        m_plot->SetColourTheme(*wxWHITE, *wxBLACK, grey, wxColour(220,220,220));
+    }
+	m_plot->UpdateAll();
+}
+
+void MyFrame::OnScientificNotation(wxCommandEvent& event)
+{
+    mpScaleY* yaxis = ((mpScaleY*)(m_plot->GetLayer(1)));
+    if (event.IsChecked()){	
+    	yaxis->SetLabelFormat("%1.1e ");
+    }
+    else
+    {
+        yaxis->SetLabelFormat("%1.0f ");
+    }
 	m_plot->UpdateAll();
 }
 
